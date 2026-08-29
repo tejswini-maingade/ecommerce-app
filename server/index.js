@@ -83,10 +83,10 @@ passport.use(
     {
       clientID: process.env.GITHUB_CLIENT,
       clientSecret: process.env.GITHUB_SECRET,
-      callbackURL:
-        process.env.NODE_ENV === "production"
-          ? "https://studio-chairs.vercel.app/auth/github/callback"
-          : "http://localhost:3000/auth/github/callback", // Changed to relative URL that points to our backend
+     callbackURL:
+  process.env.NODE_ENV === "production"
+    ? "https://studio-chairs.vercel.app/auth/github/callback"
+    : `${process.env.SERVER_URL}/auth/github/callback`, // Changed to relative URL that points to our backend
     },
     async (accessToken, refreshToken, profile, done) => {
       try {
