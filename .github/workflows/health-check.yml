@@ -12,7 +12,6 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-
       - name: Login to Docker Hub
         uses: docker/login-action@v4
         with:
@@ -30,14 +29,29 @@ jobs:
             -p 5000:5000 \
             tejswinim/ecommerce-backend:latest
 
-      - name: Wait for application
-        run: |
           sleep 10
+
+      - name: Check container status
+        run: |
+          echo "======================================"
+          echo "CONTAINER STATUS"
+          echo "======================================"
+          docker ps -a
+
+          echo ""
+          echo "======================================"
+          echo "CONTAINER LOGS"
+          echo "======================================"
+          docker logs ecommerce-backend
 
       - name: Health check
         run: |
-          echo "Checking backend application..."
-          curl --fail http://localhost:5000/ || exit 1
+          echo "======================================"
+          echo "BACKEND HEALTH CHECK"
+          echo "======================================"
+
+          curl --fail --retry 5 --retry-delay 3 http://localhost:5000/ || exit 1
+
           echo "✅ Backend health check passed!"
 
       - name: Add result to GitHub Summary
@@ -45,9 +59,9 @@ jobs:
         run: |
           echo "## 🏥 Ecommerce Backend Health Check" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "Docker Image: \`tejswinim/ecommerce-backend:latest\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "Health Endpoint: \`http://localhost:5000/\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "Status: Health check completed" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Docker Image:** \`tejswinim/ecommerce-backend:latest\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Health Endpoint:** \`http://localhost:5000/\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Status:** Health check completed" >> "$GITHUB_STEP_SUMMARY"
 
       - name: Cleanup container
         if: always()
