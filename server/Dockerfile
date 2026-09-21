@@ -7,7 +7,7 @@ COPY package*.json ./
 RUN npm install --global npm@latest \
     && npm cache clean --force
 
-RUN npm ci --omit=dev
+RUN npm install --omit=dev
 
 COPY . .
 
