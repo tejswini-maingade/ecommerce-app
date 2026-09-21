@@ -13,7 +13,7 @@ jobs:
     name: Build and Test
     uses: ./.github/workflows/reusable-build-test.yml
     with:
-      node_version: "20"
+      node_version: "24"
       run_tests: true
 
   pr-comment:
@@ -28,3 +28,6 @@ jobs:
           echo "PR checks passed!"
           echo "Branch: ${{ github.head_ref }}"
           echo "================================="
+
+
+

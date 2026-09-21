@@ -11,8 +11,9 @@ jobs:
     name: Build and Test
     uses: ./.github/workflows/reusable-build-test.yml
     with:
-      node_version: "20"
+      node_version: "24"   
       run_tests: true
+
 
 
   backend:
