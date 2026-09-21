@@ -8,7 +8,7 @@ on:
 
 jobs:
   health-check:
-    name: Check Backend Container
+    name: Backend Health Check
     runs-on: ubuntu-latest
 
     steps:
@@ -18,20 +18,50 @@ jobs:
           username: ${{ secrets.DOCKER_USERNAME }}
           password: ${{ secrets.DOCKER_TOKEN }}
 
-      - name: Pull latest backend image
+      - name: Pull backend image
         run: |
           docker pull tejswinim/ecommerce-backend:latest
 
-      - name: Start backend container
+      - name: Create Docker network
+        run: |
+          docker network create ecommerce-network
+
+      - name: Start PostgreSQL
+        run: |
+          docker run -d \
+            --name ecommerce-db \
+            --network ecommerce-network \
+            -e POSTGRES_USER=postgres \
+            -e POSTGRES_PASSWORD=postgres \
+            -e POSTGRES_DB=ecommerce \
+            postgres:16-alpine
+
+      - name: Wait for PostgreSQL
+        run: |
+          echo "Waiting for PostgreSQL..."
+          sleep 10
+
+      - name: Start backend
         run: |
           docker run -d \
             --name ecommerce-backend \
+            --network ecommerce-network \
             -p 5000:5000 \
+            -e DB_HOST=ecommerce-db \
+            -e DB_PORT=5432 \
+            -e DB_USER=postgres \
+            -e DB_PASSWORD=postgres \
+            -e DB_NAME=ecommerce \
+            -e DATABASE_URL=postgresql://postgres:postgres@ecommerce-db:5432/ecommerce \
+            -e PORT=5000 \
             tejswinim/ecommerce-backend:latest
 
-          sleep 10
+      - name: Wait for backend
+        run: |
+          echo "Waiting for backend..."
+          sleep 15
 
-      - name: Check container status
+      - name: Check containers
         run: |
           echo "======================================"
           echo "CONTAINER STATUS"
@@ -40,17 +70,18 @@ jobs:
 
           echo ""
           echo "======================================"
-          echo "CONTAINER LOGS"
+          echo "BACKEND LOGS"
           echo "======================================"
           docker logs ecommerce-backend
 
-      - name: Health check
+      - name: Backend health check
         run: |
           echo "======================================"
           echo "BACKEND HEALTH CHECK"
           echo "======================================"
 
-          curl --fail --retry 5 --retry-delay 3 http://localhost:5000/ || exit 1
+          curl --fail --retry 10 --retry-delay 3 \
+            http://localhost:5000/ || exit 1
 
           echo "✅ Backend health check passed!"
 
@@ -59,12 +90,17 @@ jobs:
         run: |
           echo "## 🏥 Ecommerce Backend Health Check" >> "$GITHUB_STEP_SUMMARY"
           echo "" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Docker Image:** \`tejswinim/ecommerce-backend:latest\`" >> "$GITHUB_STEP_SUMMARY"
-          echo "**Health Endpoint:** \`http://localhost:5000/\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Image:** \`tejswinim/ecommerce-backend:latest\`" >> "$GITHUB_STEP_SUMMARY"
+          echo "**Endpoint:** \`http://localhost:5000/\`" >> "$GITHUB_STEP_SUMMARY"
           echo "**Status:** Health check completed" >> "$GITHUB_STEP_SUMMARY"
 
-      - name: Cleanup container
+      - name: Cleanup
         if: always()
         run: |
           docker stop ecommerce-backend || true
           docker rm ecommerce-backend || true
+
+          docker stop ecommerce-db || true
+          docker rm ecommerce-db || true
+
+          docker network rm ecommerce-network || true
