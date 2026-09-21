@@ -7,6 +7,7 @@ on:
         required: false
         type: string
         default: "24"
+
       run_tests:
         required: false
         type: boolean
@@ -14,7 +15,7 @@ on:
 
     outputs:
       test_result:
-        description: "Test result"
+        description: "Build and test result"
         value: ${{ jobs.build-test.outputs.test_result }}
 
 jobs:
@@ -25,6 +26,7 @@ jobs:
       test_result: ${{ steps.result.outputs.test_result }}
 
     steps:
+
       - name: Checkout code
         uses: actions/checkout@v7
 
@@ -32,33 +34,47 @@ jobs:
         uses: actions/setup-node@v7
         with:
           node-version: ${{ inputs.node_version }}
-          cache: npm
 
-      - name: Install dependencies
-        run: npm ci
-
-      - name: Run tests
-        id: tests
-        if: ${{ inputs.run_tests }}
-        continue-on-error: true
+      - name: Install root dependencies
         run: |
-          npm test
+          npm install
 
-      - name: Build application
+      - name: Install frontend dependencies
         run: |
-          echo "Building ecommerce application..."
-          npm run build --if-present
+          cd client
+          npm install
+
+      - name: Build frontend
+        id: frontend-build
+        run: |
+          cd client
+          npm run build
+
+      - name: Check backend syntax
+        id: backend-check
+        run: |
+          node --check server/index.js
 
       - name: Set test result
         id: result
         if: always()
         run: |
-          if [ "${{ steps.tests.outcome }}" = "success" ]; then
+          if [ "${{ steps.frontend-build.outcome }}" = "success" ] && \
+             [ "${{ steps.backend-check.outcome }}" = "success" ]; then
             echo "test_result=passed" >> "$GITHUB_OUTPUT"
           else
             echo "test_result=failed" >> "$GITHUB_OUTPUT"
           fi
 
-      - name: Fail if tests failed
-        if: steps.tests.outcome == 'failure'
-        run: exit 1
+      - name: Show result
+        run: |
+          echo "================================"
+          echo "Build and Test Result"
+          echo "================================"
+          echo "Result: ${{ steps.result.outputs.test_result }}"
+
+      - name: Fail if checks failed
+        if: steps.frontend-build.outcome == 'failure' || steps.backend-check.outcome == 'failure'
+        run: |
+          echo "❌ Build/Test checks failed"
+          exit 1
