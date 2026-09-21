@@ -1,15 +1,18 @@
-FROM node:24-slim
+FROM node:24-alpine
 
 WORKDIR /app
 
-# Ensure npm contains tar >= 7.5.21
-RUN npm install --global npm@latest \
-    && npm cache clean --force
-
 COPY package*.json ./
-RUN npm ci --omit=dev
+
+RUN npm install --omit=dev \
+    && npm install --omit=dev --save=false \
+       brace-expansion@5.0.9 \
+       ip-address@10.3.1 \
+       tar@7.5.21 \
+    && npm cache clean --force
 
 COPY . .
 
 EXPOSE 5000
-CMD ["npm", "start"]
+
+CMD ["node", "index.js"]
