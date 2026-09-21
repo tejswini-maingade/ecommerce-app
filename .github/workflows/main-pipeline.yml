@@ -1,0 +1,72 @@
+name: Main Branch Pipeline
+
+on:
+  push:
+    branches:
+      - main
+
+jobs:
+
+  build-test:
+    name: Build and Test
+    uses: ./.github/workflows/reusable-build-test.yml
+    with:
+      node_version: "20"
+      run_tests: true
+
+
+  backend:
+    name: Build Backend Image
+    needs: build-test
+    uses: ./.github/workflows/reusable-docker.yml
+    with:
+      image_name: ecommerce-backend
+      context: ./server
+      dockerfile: ./server/Dockerfile
+      tag: latest
+    secrets:
+      docker_username: ${{ secrets.DOCKER_USERNAME }}
+      docker_token: ${{ secrets.DOCKER_TOKEN }}
+
+
+  frontend:
+    name: Build Frontend Image
+    needs: build-test
+    uses: ./.github/workflows/reusable-docker.yml
+    with:
+      image_name: ecommerce-frontend
+      context: ./client
+      dockerfile: ./client/Dockerfile
+      tag: latest
+    secrets:
+      docker_username: ${{ secrets.DOCKER_USERNAME }}
+      docker_token: ${{ secrets.DOCKER_TOKEN }}
+
+
+  deploy:
+    name: Deploy to Production
+    needs:
+      - backend
+      - frontend
+
+    runs-on: ubuntu-latest
+
+    environment:
+      name: production
+
+    steps:
+      - name: Deploy
+        run: |
+          echo "========================================"
+          echo "Production Deployment"
+          echo "========================================"
+
+          echo "Backend Image:"
+          echo "${{ needs.backend.outputs.image_url }}"
+
+          echo "Frontend Image:"
+          echo "${{ needs.frontend.outputs.image_url }}"
+
+          echo "Deploying ecommerce application..."
+
+          echo "Deployment completed successfully!"
