@@ -5,13 +5,16 @@ WORKDIR /app
 COPY package*.json ./
 
 RUN npm install --omit=dev \
-    && npm install --omit=dev --save=false \
-       brace-expansion@5.0.9 \
-       ip-address@10.3.1 \
-       tar@7.5.21 \
     && npm cache clean --force
 
 COPY . .
+
+# npm is only needed while building the image.
+# Remove it from the final runtime image so Trivy
+# does not scan npm's bundled vulnerable dependencies.
+RUN rm -rf /usr/local/lib/node_modules/npm \
+    /usr/local/bin/npm \
+    /usr/local/bin/npx
 
 EXPOSE 5000
 
