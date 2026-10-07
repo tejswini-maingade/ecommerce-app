@@ -1,0 +1,94 @@
+name: Kubernetes Audit
+
+on:
+  push:
+    branches:
+      - main
+
+  pull_request:
+
+jobs:
+
+  k8s-audit:
+
+    runs-on: ubuntu-latest
+
+    steps:
+
+      - name: Checkout repository
+        uses: actions/checkout@v4
+
+      - name: Create kind cluster
+        uses: helm/kind-action@v1
+        with:
+          cluster_name: kind-audit
+
+      - name: Verify cluster
+        run: |
+          kubectl get nodes
+
+      - name: Build backend image
+        run: |
+          docker build \
+            -t ecommerce-backend:v1 \
+            ./server
+
+      - name: Build frontend image
+        run: |
+          docker build \
+            -t ecommerce-frontend:v1 \
+            ./client
+
+      - name: Load images
+        run: |
+          kind load docker-image \
+            ecommerce-backend:v1 \
+            --name kind-audit
+
+          kind load docker-image \
+            ecommerce-frontend:v1 \
+            --name kind-audit
+
+      - name: Deploy namespace
+        run: |
+          kubectl apply \
+            -f k8s/namespace/namespace.yaml
+
+      - name: Deploy database
+        run: |
+          kubectl apply \
+            -f k8s/database/
+
+      - name: Deploy backend
+        run: |
+          kubectl apply \
+            -f k8s/backend/
+
+      - name: Deploy frontend
+        run: |
+          kubectl apply \
+            -f k8s/frontend/
+
+      - name: Deploy ingress
+        run: |
+          kubectl apply \
+            -f k8s/ingress/
+
+      - name: Wait for backend
+        run: |
+          kubectl rollout status \
+            deployment/ecommerce-backend \
+            -n ecommerce \
+            --timeout=180s
+
+      - name: Wait for frontend
+        run: |
+          kubectl rollout status \
+            deployment/ecommerce-frontend \
+            -n ecommerce \
+            --timeout=180s
+
+      - name: Show resources
+        run: |
+          kubectl get all \
+            -n ecommerce

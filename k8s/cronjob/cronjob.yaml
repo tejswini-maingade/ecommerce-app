@@ -1,0 +1,42 @@
+apiVersion: batch/v1
+kind: CronJob
+
+metadata:
+  name: ecommerce-db-check
+  namespace: ecommerce
+
+spec:
+
+  schedule: "*/5 * * * *"
+
+  jobTemplate:
+
+    spec:
+
+      template:
+
+        spec:
+
+          restartPolicy: OnFailure
+
+          containers:
+
+            - name: db-check
+
+              image: postgres:16
+
+              command:
+                - /bin/sh
+                - -c
+
+                - |
+                  pg_isready \
+                    -h postgres \
+                    -p 5432 \
+                    -U ecommerce_user \
+                    -d ecommerce_db
+
+              env:
+
+                - name: PGPASSWORD
+                  value: ecommerce_password

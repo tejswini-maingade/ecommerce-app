@@ -1,0 +1,18 @@
+apiVersion: rbac.authorization.k8s.io/v1
+kind: RoleBinding
+
+metadata:
+  name: ecommerce-reader-binding
+  namespace: ecommerce
+
+subjects:
+
+  - kind: ServiceAccount
+    name: ecommerce-backend
+    namespace: ecommerce
+
+roleRef:
+
+  kind: Role
+  name: ecommerce-reader
+  apiGroup: rbac.authorization.k8s.io

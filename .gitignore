@@ -2,3 +2,4 @@
 node_modules/
 .vercel
 vercel.json
+echo "k8s/config/postgres-secret.yaml" >> .gitignore
